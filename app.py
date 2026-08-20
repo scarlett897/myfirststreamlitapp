@@ -1,4 +1,10 @@
 import streamlit as st
+
+st.set_page_config(
+    page_title="AI",
+    layout="wide",
+)
+
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -13,7 +19,6 @@ DB_PATH=os.path.join(tempfile.gettempdir(), "chroma_db")
 db=chromadb.PersistentClient(path=DB_PATH)
 brain=db.get_or_create_collection("documents")
 memory=db.get_or_create_collection("conversations")
-
 
 def chunkit(text,size=1000):
     bits=text.split(". ")
@@ -47,6 +52,7 @@ def storeconversation(question, answer):
         ids=[f"turn{turn}_{i}" for i in range(len(chunks))],
     )
     return len(chunks)
+
 
 st.subheader("How to use this AI")
 st.write("This AI is designed to assist you in accidents or emergency situations. It can provide guidance and support when you need medical assistance. However, this tool is not a substitute for professional medical care. Please consult a qualified healthcare doctor if your symptoms worsen or stays the same. Find the 'Ask me Anything' tab and start asking.")
@@ -113,7 +119,7 @@ if user_input and prompt:
     st.session_state.messages.append({"role": "user", "content": prompt})
     client = OpenAI(
         base_url="https://api.groq.com/openai/v1",
-        api_key=os.getenv("GITHUB_TOKEN") or st.secrets["GITHUB_TOKEN"],
+        api_key=os.getenv("GITHUB_TOKEN") or st.secrets.get("GITHUB_TOKEN"),
     )
     with st.chat_message("user"):
         st.write(prompt)
@@ -167,9 +173,3 @@ if user_input and prompt:
                 answer.markdown(a)
     st.session_state.messages.append({"role": "assistant", "content": a})
     storeconversation(prompt, a)
-
-    # ---------- 1. the browser tab ----------
-    st.set_page_config(
-        page_title="AI",
-        layout="wide",
-    )
