@@ -1,0 +1,26 @@
+[theme]
+# "light" or "dark", the starting point
+base = "dark"
+# your accent: buttons, sliders, links, the send arrow
+primaryColor = "#FFC93C"
+# the main page
+backgroundColor = "#10131A"
+# the sidebar and chat bubbles
+secondaryBackgroundColor = "#1B2233"
+# all your text
+textColor = "#EAEFF7"
+# outlines on boxes and inputs
+borderColor = "#2A3446"
+# "sans serif", "serif" or "monospace"
+font = "serif"
+# a different font just for titles
+headingFont = "Instrument Sans"
+
+
+# "none", "small", "medium", "large", "full"
+baseRadius = "full"
+[[theme.fontFaces]]
+family = "Instrument Sans"
+url = "https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,450;1,450&display=swap"
+weight = 450
+style = "normal"

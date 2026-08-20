@@ -1,22 +1,175 @@
 import streamlit as st
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+import chromadb
+import chromadb.utils.embedding_functions as ef
+from doc_helper import read_file
 
-st.title("Breakfast")
-st.header("The use of Breakfast")
-st.write("Breakfast is one of the most important things in life. People rely on it to maintain their daily needs.")
-st.subheader("Coffee")
-st.write("Coffee has been used widely at the start of the morning. It is known to keep people up and give them a head start for the day. There are many kinds of coffee, and everyone has their special choice of their own.")
-st.subheader("Eggs")
-st.write("Eggs are known to contain many protein and nutrients. You can have eggs in many ways: sunny side up, scrambled, hard boiled, etc. People have different ways to eat eggs, and it is recommended for people to eat two eggs every day. ")
-st.subheader("Bacon")
-st.write("Bacon is one of the most known partner with eggs. Many hotels offer bacon and eggs as a breakfast menu. Bacon comes from pork, and it is know for its good taste. There are many kinds of bacon. The typical way people eat bacon is to fry them on a pan. They have a savoury taste and are commonly eaten.")
-st.subheader("Toast")
-st.write("Toast is also a common food eaten during breakfast. It is bread being fried, or put in the toaster. Some people put butter on toast, while others put jam on top. There are also people who eat toast without anything and with honey. Toast has a crispy taste, and basically everyone can eat it.")
+load_dotenv()
+import tempfile, os
 
-with st.sidebar:
+DB_PATH=os.path.join(tempfile.gettempdir(), "chroma_db")
+db=chromadb.PersistentClient(path=DB_PATH)
+brain=db.get_or_create_collection("documents")
+memory=db.get_or_create_collection("conversations")
+
+
+def chunkit(text,size=1000):
+    bits=text.split(". ")
+    chunks, current=[],""
+    for bit in bits:
+        if len(current)+len(bit)<size:
+            current+=bit+". "
+        else:
+            if current.strip():
+                chunks.append(current.strip())
+            current=bit+". "
+    if current.strip():
+        chunks.append(current.strip())
+    return chunks
+
+def storedocument(file):
+    chunks=chunkit(read_file(file))
+    prefix=file.name.replace(" ","_")
+    brain.upsert(
+        documents=chunks,
+        ids=[f"{prefix}_{i}" for i in range(len(chunks))],
+    )
+    return len(chunks)
+def storeconversation(question, answer):
+    text=f"Q: {question}\nA: {answer}"
+    chunks=chunkit(text)
+    turn=memory.count()
+    memory.upsert(
+        documents=[f"[past chat] {c}" for c in chunks],
+        metadatas=[{"kind":"chat","turn": turn} for c in chunks],
+        ids=[f"turn{turn}_{i}" for i in range(len(chunks))],
+    )
+    return len(chunks)
+
+st.subheader("How to use this AI")
+st.write("This AI is designed to assist you in accidents or emergency situations. It can provide guidance and support when you need medical assistance. However, this tool is not a substitute for professional medical care. Please consult a qualified healthcare doctor if your symptoms worsen or stays the same. Find the 'Ask me Anything' tab and start asking.")
+
+
+if "messages" not in st.session_state:
+    st.session_state.messages=[]
+
+with  st.sidebar:
     st.header("Settings")
-    name=st.text_input("Name")
-    mood=st.selectbox("Select your AI's mood", ["Happy", "Sad", "Angry","Bored","I don't want to do homework"])
-    gender=st.selectbox("Your gender", ["Male", "Female","Other"])
-    creativity=st.slider("Select your creativity", 0, 10)
+    name=st.text_input("Enter your name")
+    gender=st.selectbox("Gender", ["Other","Male", "Female"])
+    creativity=st.slider("Select your creativity", 0.0, 1.0, 0.3)
+    messagehistory=st.slider("How many messages would you like to keep?", 0, 15, 10)
+    recall=st.slider("Number of chunks for recall", 0, 15,15)
+    n_chunks = st.slider("Number of Chunks", 1, 15, 5)
+    model=st.selectbox("Model",["openai/gpt-oss-120b","openai/gpt-oss-20b"])
     if st.button("Save"):
-        st.write(f"Saved.")
+        st.write(f"Saved")
+
+    if st.button("Clear Chat"):
+        st.session_state.messages=[]
+        st.rerun()
+    if st.button("Clear all document history"):
+        db.delete_collection("documents")
+        st.rerun()
+    if st.button("Clear all past conversation history"):
+        db.delete_collection("conversations")
+        st.rerun()
+    st.caption(f"{len(st.session_state.messages)} messages have been sent in this chat")
+    st.caption(f"{brain.count()} chunks stored inside the chat")
+    st.caption(f"{memory.count()} past conversation chunks stored")
+
+
+systemprompt=("You are a medical assistant. You should sound friendly and professional. You also provide routines to patients."
+              "You must ensure that they have checked with a doctor."
+              "If the user asks questions outside of concept, cooperate with the user."
+              "If they need immediate help, try and sound as clear as possible."
+              "Always first provide help or actions to soothe the pain before identifying or explaining the user what causes they are having."
+              f"The user's gender is {gender}. Use this information if you need to. If the gender is not identified, continue your answer."
+              f"The user's name is {name}. Use it if you need to."
+              f"Try recalling from the past conversations if you do not know the answer to some out-of-concept questions."
+              "Provide some extra questions following your answers"
+              "Number your follow-up questions so that when the user is in emergency, they could easily tell you which follow-up problem they have."
+              "After your grid/graph, provide the most recommended actions to be done."
+              "Do not ask too much from the user, but choose specific parts that tells you what symptom the user is having. Ask after providing your graph/grid on what to do."
+              "When asking, try to ask simple questions like after these steps, do you have nay severe bleeding or stomach aches? so that the user can type the question number and say yes."
+              "try to simple things as much as possible for example, if you want the user to reply yes or no, let them just type y/n."
+              )
+for old in st.session_state.messages:
+    with st.chat_message(old["role"]):
+        st.markdown(old["content"])
+
+user_input=st.chat_input("Ask me anything...", accept_file=True,file_type=["pdf","txt"])
+
+if user_input:
+    prompt=user_input.text
+    if user_input.files:
+        with st.spinner(f"Processing {user_input.files[0].name}..."):
+            n=storedocument(user_input.files[0])
+        st.success(f"Stored {n} new chunks inside of the chat, from {user_input.files[0].name}")
+
+if user_input and prompt:
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    client = OpenAI(
+        base_url="https://api.groq.com/openai/v1",
+        api_key=os.getenv("GITHUB_TOKEN") or st.secrets["GITHUB_TOKEN"],
+    )
+    with st.chat_message("user"):
+        st.write(prompt)
+    notes=""
+    if brain.count()>0:
+        hits=brain.query(query_texts=[prompt], n_results=n_chunks)
+        notes="\n\n".join(hits["documents"][0])
+
+        with st.expander("What I looked up"):
+            for doc, dist in zip(hits["documents"][0], hits["distances"][0]):
+                st.text(f"{dist:.3f}, {doc[:70]}")
+    recalled=""
+    if recall>0 and memory.count()>messagehistory:
+        old=memory.query(query_texts=[prompt], n_results=recall)
+        recalled="\n\n".join(old["documents"][0])
+
+        with st.expander("What I remembered from past conversations"):
+            for doc, dist in zip(old["documents"][0], old["distances"][0]):
+                st.text(f"{dist:.3f}, {doc[:70]}")
+
+    if notes or recalled:
+        fullprompt = (
+            f"These are POTENTIALLY relevant notes to the user's prompt, "
+            f"they might be irrelevant:\n{notes}\n\n"
+            f"These are POTENTIALLY relevant past conversations, "
+            f"they might be irrelevant:\n{recalled}\n\n"
+            f"Now answer based on the above: {prompt}"
+        )
+    else:
+        fullprompt = prompt
+
+    with st.chat_message("assistant"):
+        stream=client.chat.completions.create(
+            model=model,
+            temperature=creativity,
+            messages=[{"role": "system", "content": systemprompt}]
+                     + st.session_state.messages[-messagehistory:-1]
+                     + [{"role":"user","content":fullprompt}],
+            stream=True,
+        )
+        thinking=st.expander("Thinking", expanded=True).empty()
+        answer=st.empty()
+        t=a=""
+        for chunk in stream:
+            d=chunk.choices[0].delta
+            if getattr(d,"reasoning", None):
+                t+=d.reasoning
+                thinking.markdown(f"*{t}*")
+            if d.content:
+                a+=d.content
+                answer.markdown(a)
+    st.session_state.messages.append({"role": "assistant", "content": a})
+    storeconversation(prompt, a)
+
+    # ---------- 1. the browser tab ----------
+    st.set_page_config(
+        page_title="AI",
+        layout="wide",
+    )

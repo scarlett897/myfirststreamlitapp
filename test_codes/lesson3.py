@@ -24,7 +24,7 @@ memories.upsert(
         "read books",
         "My name is Scarlett"
     ],
-    ids=[f"fact{memories.count()+1}"],
+    ids=["fact1", "fact2", "fact3", "fact4", "fact5", "fact6", "fact7"],
 )
 
 print("\nstored:", memories.count(), "facts")
