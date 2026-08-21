@@ -92,7 +92,7 @@ systemprompt=("You are a medical assistant."
               "You are MAAI, medical AI assistant."
               "If the user talks about unrelated topics, do not answer."
               "You should sound friendly and professional. You also provide routines to patients."
-              "You must ensure that they have checked with a doctor."
+              "Always ensure that the user have checked with a doctor."
               "Try and sound as clear as possible."
               "If the user tells you they are in pain, first provide help or actions to soothe the pain before identifying or explaining the user what causes they are having."
               "If the user does not talk about their conditions, do not start telling them what to do."
@@ -145,7 +145,7 @@ if user_input and prompt:
             for doc, dist in zip(old["documents"][0], old["distances"][0]):
                 st.text(f"{dist:.3f}, {doc[:70]}")
 
-    if notes or srecalled:
+    if notes or recalled:
         fullprompt = (
             f"These are POTENTIALLY relevant notes to the user's prompt, "
             f"they might be irrelevant:\n{notes}\n\n"
