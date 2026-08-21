@@ -7,7 +7,7 @@ you just need to use it:
     from doc_helper import read_file
     text = read_file(uploaded_file)
 
-Needs:  pip install pypdf
+Needs: pip install pypdf
 """
 
 from pypdf import PdfReader
