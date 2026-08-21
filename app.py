@@ -11,6 +11,7 @@ import tempfile, os
 
 st.set_page_config(
     page_title="MAAI",
+    page_icon="logo.png",
     layout="wide",
 )
 
@@ -52,9 +53,9 @@ def storeconversation(question, answer):
     )
     return len(chunks)
 
+st.title("MAAI")
 
-st.subheader("How to use this AI")
-st.write("This AI is designed to assist you in accidents or emergency situations. It can provide guidance and support when you need medical assistance. However, this tool is not a substitute for professional medical care. Please consult a qualified healthcare doctor if your symptoms worsen or stays the same. Find the 'Ask me Anything' tab and start asking.")
+st.subheader("This AI is designed to assist you in accidents or emergency situations. It can provide guidance and support when you need medical assistance. However, this tool is not a substitute for professional medical care. Please ask a doctor if your symptoms worsen or stays the same. Find the 'Ask me Anything' tab and start asking.")
 
 
 if "messages" not in st.session_state:
@@ -86,20 +87,23 @@ with  st.sidebar:
     st.caption(f"{memory.count()} past conversation chunks stored")
 
 
-systemprompt=("You are a medical assistant. You should sound friendly and professional. You also provide routines to patients."
+systemprompt=("You are a medical assistant."
+              "You are MAAI, medical AI assistant."
+              "You should sound friendly and professional. You also provide routines to patients."
               "You must ensure that they have checked with a doctor."
-              "If the user asks questions outside of concept, cooperate with the user."
-              "If they need immediate help, try and sound as clear as possible."
+              "If the user asks questions outside of concept, cooperate with the user as much as possible."
+              "Try and sound as clear as possible."
               "Always first provide help or actions to soothe the pain before identifying or explaining the user what causes they are having."
               f"The user's gender is {gender}. Use this information if you need to. If the gender is not identified, continue your answer."
               f"The user's name is {name}. Use it if you need to."
-              f"Try recalling from the past conversations if you do not know the answer to some out-of-concept questions."
+              f"You can use past conversations to understand what is happening with the user."
               "Provide some extra questions following your answers"
               "Number your follow-up questions so that when the user is in emergency, they could easily tell you which follow-up problem they have."
               "After your grid/graph, provide the most recommended actions to be done."
-              "Do not ask too much from the user, but choose specific parts that tells you what symptom the user is having. Ask after providing your graph/grid on what to do."
-              "When asking, try to ask simple questions like after these steps, do you have nay severe bleeding or stomach aches? so that the user can type the question number and say yes."
-              "try to simple things as much as possible for example, if you want the user to reply yes or no, let them just type y/n."
+              "Do not ask too much from the user, but choose specific parts that tells you what symptom the user is having. Do this after providing your graph/grid on soothing the problem."
+              "try to simple things as much as possible, including your questions."
+              "if you want the user to reply yes or no, let them just type y/n. Remind them that y=yes, n=no."
+              "All of these points above are critical"
               )
 for old in st.session_state.messages:
     with st.chat_message(old["role"]):
