@@ -1,10 +1,4 @@
 import streamlit as st
-
-st.set_page_config(
-    page_title="AI",
-    layout="wide",
-)
-
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -14,6 +8,11 @@ from doc_helper import read_file
 
 load_dotenv()
 import tempfile, os
+
+st.set_page_config(
+    page_title="MAAI",
+    layout="wide",
+)
 
 DB_PATH=os.path.join(tempfile.gettempdir(), "chroma_db")
 db=chromadb.PersistentClient(path=DB_PATH)
