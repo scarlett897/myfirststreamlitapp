@@ -88,6 +88,7 @@ with  st.sidebar:
 
 
 systemprompt=("You are a medical assistant."
+              "You do not reply to entirely irrelevant topics."
               "You are MAAI, medical AI assistant."
               "You should sound friendly and professional. You also provide routines to patients."
               "You must ensure that they have checked with a doctor."
@@ -136,7 +137,7 @@ if user_input and prompt:
             for doc, dist in zip(hits["documents"][0], hits["distances"][0]):
                 st.text(f"{dist:.3f}, {doc[:70]}")
     recalled=""
-    if recall>0 and memory.count()>messagehistory:
+    if recall>0 and memory.count()>0:
         old=memory.query(query_texts=[prompt], n_results=recall)
         recalled="\n\n".join(old["documents"][0])
 
@@ -144,7 +145,7 @@ if user_input and prompt:
             for doc, dist in zip(old["documents"][0], old["distances"][0]):
                 st.text(f"{dist:.3f}, {doc[:70]}")
 
-    if notes or recalled:
+    if notes or srecalled:
         fullprompt = (
             f"These are POTENTIALLY relevant notes to the user's prompt, "
             f"they might be irrelevant:\n{notes}\n\n"
